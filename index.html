@@ -188,7 +188,20 @@ function refreshWalkTime(){
 $('start').addEventListener('change',refreshWalkTime);
 $('dest').addEventListener('change',refreshWalkTime);
 let currentPath=null;
-function draw(){const s=$('overlay');s.replaceChildren();if(!active)return;const a=locations[from],b=locations[to];const path=currentPath||findPath(from,to);if(path){let pieces=[],part=[];for(const id of path){const n=nodeData[id];if(n.l===floor){part.push([n.x*1000,n.y*700])}else if(part.length){if(part.length>1)pieces.push(part);part=[]}}if(part.length>1)pieces.push(part);for(const P of pieces){s.append(svg('polyline',{points:P.map(p=>p.join(',')).join(' '),fill:'none',stroke:'#1a73e8','stroke-width':5,'stroke-linecap':'round','stroke-linejoin':'round','stroke-dasharray':'3 13'}))}}
+function draw(){const s=$('overlay');s.replaceChildren();
+// These two outdoor areas are not printed on the original Level 1 floor-plan image.
+// Show permanent map labels, including before a journey starts.
+if(floor===1){
+ const addOutdoor=(x,y,w,h,lines)=>{
+  s.append(svg('rect',{x,y,width:w,height:h,rx:4,fill:'#f0f7ff',stroke:'#385b84','stroke-width':2}));
+  const t=svg('text',{x:x+w/2,y:y+h/2-(lines.length-1)*12,'text-anchor':'middle','font-family':'Arial, sans-serif','font-size':20,'font-weight':'bold',fill:'#173a5e'});
+  lines.forEach((line,i)=>{const span=svg('tspan',{x:x+w/2,dy:i===0?0:24});span.textContent=line;t.append(span)});
+  s.append(t);
+ };
+ addOutdoor(42,333,118,168,['Field']);
+ addOutdoor(76,114,118,104,['Basketball','Court']);
+}
+if(!active)return;const a=locations[from],b=locations[to];const path=currentPath||findPath(from,to);if(path){let pieces=[],part=[];for(const id of path){const n=nodeData[id];if(n.l===floor){part.push([n.x*1000,n.y*700])}else if(part.length){if(part.length>1)pieces.push(part);part=[]}}if(part.length>1)pieces.push(part);for(const P of pieces){s.append(svg('polyline',{points:P.map(p=>p.join(',')).join(' '),fill:'none',stroke:'#1a73e8','stroke-width':5,'stroke-linecap':'round','stroke-linejoin':'round','stroke-dasharray':'3 13'}))}}
  for(const [p,color] of [[a,'#1769ed'],[b,'#ea4335']])if(p.l===floor){s.append(svg('circle',{cx:p.x*1000,cy:p.y*700,r:16,fill:'none',stroke:color,'stroke-width':3}));s.append(svg('circle',{cx:p.x*1000,cy:p.y*700,r:8,fill:color,stroke:'white','stroke-width':2}))}if(b.l===floor){const px=b.x*1000,py=b.y*700;s.append(svg('path',{d:`M ${px} ${py-4} C ${px-27} ${py-33}, ${px+27} ${py-33}, ${px} ${py-4} Z`,fill:'#ea4335',stroke:'white','stroke-width':2}))}updateCompassMarker()}
 function route(){if(blockedByMission())return;from=$('start').value;to=$('dest').value;active=true;const a=locations[from],b=locations[to];$('mission').hidden=true;$('feedback').textContent='';currentPath=findPath(from,to);changeFloor(a.l);$('routeLabel').textContent=from+' → '+to;refreshWalkTime();const steps=[];if(from===to){$('arrow').textContent='✓';$('direction').textContent='You are at the destination';steps.push('Scan the destination QR code and complete its mission.')}else if(!currentPath){$('arrow').textContent='!';$('direction').textContent='Route unavailable';steps.push('Ask your teacher to check the walkway connection.')}else{
  const transitions=[];for(let i=1;i<currentPath.length;i++)if(nodeData[currentPath[i]].l!==nodeData[currentPath[i-1]].l)transitions.push([currentPath[i-1],currentPath[i]]);
