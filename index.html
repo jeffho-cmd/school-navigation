@@ -131,7 +131,25 @@ function route(){from=$('start').value;to=$('dest').value;active=true;const a=lo
  $('detail').textContent='Current: '+from+' · Destination: '+to;$('steps').replaceChildren();steps.forEach(t=>{let li=document.createElement('li');li.textContent=t;$('steps').append(li)});setStatus('Navigation started. Blue dot shows '+from+' (last confirmed location).');draw()}
 function confirmLocation(n){if(!locations[n])return;from=n;$('start').value=n;$('checkpoint').value=n;changeFloor(locations[n].l);if(active){route();if(n===to)setStatus('Destination reached: '+n+'. Complete this location’s mission.');else setStatus('Checkpoint confirmed: '+n+'. Complete this mission, then continue navigating.')}else setStatus('Location confirmed: '+n+'. Complete the checkpoint mission.');showCheckpointMission(n)}
 function arrive(){if(!active){setStatus('Start a journey first.');return}if(from!==to){setStatus('You have not confirmed the destination. Scan its QR code or choose the destination as your current location.');return}$('mission').hidden=false;showCheckpointMission(to);setStatus('Destination confirmed: '+to+'. Complete your mission below.')}
-$('go').addEventListener('click',route);$('confirm').addEventListener('click',()=>confirmLocation($('checkpoint').value));$('arrive').addEventListener('click',arrive);$('lost').addEventListener('click',()=>{$('checkpoint').focus();setStatus('Find a nearby QR checkpoint or select your actual location and press Confirm location.')});$('voice').addEventListener('click',()=>{if(!('speechSynthesis'in window)){setStatus('Voice is not available in this browser.');return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance($('direction').textContent+'. '+$('steps').textContent);u.lang='en-SG';u.rate=.85;speechSynthesis.speak(u)});
+$('go').addEventListener('click',route);$('confirm').addEventListener('click',()=>confirmLocation($('checkpoint').value));$('arrive').addEventListener('click',arrive);$('lost').addEventListener('click',()=>{$('checkpoint').focus();setStatus('Find a nearby QR checkpoint or select your actual location and press Confirm location.')});let voiceReadToken=0;
+$('voice').addEventListener('click',()=>{
+ if(!('speechSynthesis' in window)){setStatus('Voice is not available in this browser.');return}
+ voiceReadToken++;
+ const token=voiceReadToken;
+ speechSynthesis.cancel();
+ const items=[...$('steps').querySelectorAll('li')].map(li=>li.textContent.trim()).filter(Boolean);
+ const lines=items.length?items.map((t,i)=>'Step '+(i+1)+'. '+t):[$('detail').textContent.trim()];
+ let index=0;
+ function readNext(){
+  if(token!==voiceReadToken||index>=lines.length)return;
+  const u=new SpeechSynthesisUtterance(lines[index]);
+  u.lang='en-SG';u.rate=.7;u.pitch=1;
+  u.onend=()=>{if(token!==voiceReadToken)return;index++;readNext()};
+  u.onerror=()=>{if(token!==voiceReadToken)return;index++;readNext()};
+  speechSynthesis.speak(u);
+ }
+ readNext();
+});
 $('complete').addEventListener('click',()=>{const n=window.lastMissionLocation;if(!n||!currentMission)return;if(!done.includes(n))done.push(n);try{localStorage.setItem('schoolNavDone',JSON.stringify(done))}catch(e){}progress();$('feedback').textContent=(active&&n===to)?'✓ Mission completed! Journey completed.':'✓ Mission completed! Continue towards '+(active?to:'your destination')+'.';});
 $('next').addEventListener('click',()=>{currentMission=null;$('mission').hidden=true;setStatus(active?'Continue following the route to '+to+'.':'Choose a destination to start navigation.');});
 $('random').addEventListener('click',()=>{const choices=names.filter(n=>n!==$('start').value&&locations[n].kind!=='Checkpoint');$('dest').value=choices[Math.floor(Math.random()*choices.length)];route()});$('reset').addEventListener('click',()=>{if(confirm('Clear completed missions on this device?')){done=[];try{localStorage.removeItem('schoolNavDone')}catch(e){}progress()}});
