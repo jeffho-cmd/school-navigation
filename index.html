@@ -108,11 +108,14 @@ for(let l=1;l<=4;l++){
  N('join',.85,.53);edge('w'+l+'E5','w'+l+'join');edge('w'+l+'F6','w'+l+'join');
  N('centre',.565,.555);edge('w'+l+'E0','w'+l+'centre');edge('w'+l+'F0','w'+l+'centre');
  N('west',.565,.73);edge('w'+l+'centre','w'+l+'west');
+ // Doorway points along the lower corridor. Avoid drawing a diagonal through rooms.
+ N('southRoom1',.69,.73);N('southRoom2',.85,.73);
+ chain(['w'+l+'west','w'+l+'southRoom1','w'+l+'southRoom2']);
  // Block B hall entrance connects via the WEST/SOUTH perimeter, never across the open central void.
  N('Bhall',.17,.46);N('Bwest',.235,.46);N('Bbottom',.235,.72);
  chain(['w'+l+'Bhall','w'+l+'Bwest','w'+l+'Bbottom','w'+l+'west']);
  for(const [tag,x] of [['A',.32],['lift',.28],['G',.85]])N(tag,x,.73);
- chain(['w'+l+'lift','w'+l+'A','w'+l+'west','w'+l+'G']);
+ chain(['w'+l+'lift','w'+l+'A','w'+l+'west']);edge('w'+l+'southRoom2','w'+l+'G');
  N('C0',.275,.365);N('C1',.42,.365);N('C2',.55,.365);chain(['w'+l+'C0','w'+l+'C1','w'+l+'C2']);
  // Level 1 outdoor access: two possible approaches to both outdoor sports areas.
  // The short entry segments are provisional until the teacher checks gate positions.
@@ -126,7 +129,9 @@ for(let l=1;l<=4;l++){
  edge('w'+l+'C2','w'+l+'E0');
 }
 for(const [name,p] of Object.entries(locations)){
- node(name,p.l,p.x,p.y);
+ // Route ends at the corridor-side entrance, while the destination pin stays in the room.
+ const doorway=({'Home Economics Room 1':[.69,.73],'Home Economics Room 2':[.85,.73],'Staff Room 2':[.65,.73]})[name];
+ node(name,p.l,doorway?doorway[0]:p.x,doorway?doorway[1]:p.y);
  const l=p.l;
  let attach=null;
  let match=/^([EF])([1-4])-([1-5])$/.exec(name);
@@ -136,7 +141,9 @@ for(const [name,p] of Object.entries(locations)){
  else if(name.startsWith('SC A'))attach='w'+l+'A';
  else if(name.startsWith('Lift'))attach='w'+l+'lift';
  else if(['Library','Sick Bay','Lobby','Corporate Service Office','Staff Room 1'].includes(name))attach='w'+l+'A';
- else if(['Home Economics Room 1','Home Economics Room 2','Staff Room 2'].includes(name))attach='w'+l+'G';
+ else if(name==='Home Economics Room 1')attach='w'+l+'southRoom1';
+ else if(name==='Home Economics Room 2')attach='w'+l+'southRoom2';
+ else if(name==='Staff Room 2')attach='w'+l+'southRoom1';
  else if(['Dance Studio','Youth Hub','OT Room','AP Office','Horticulture'].includes(name))attach='w'+l+'C0';
  else if(['Art and Science'].includes(name))attach='w'+l+'C1';
  else if(['Music Room','Computer Lab 1','Computer Lab 2','Hospitality Room','DLS Room','Therapy Room 2','Therapy Room 3'].includes(name))attach='w'+l+'D1';
@@ -193,8 +200,8 @@ function draw(){const s=$('overlay');s.replaceChildren();
 // Show permanent map labels, including before a journey starts.
 if(floor===1){
  const addOutdoor=(x,y,w,h,lines)=>{
-  s.append(svg('rect',{x,y,width:w,height:h,rx:4,fill:'#f0f7ff',stroke:'#385b84','stroke-width':2}));
-  const t=svg('text',{x:x+w/2,y:y+h/2-(lines.length-1)*12,'text-anchor':'middle','font-family':'Arial, sans-serif','font-size':20,'font-weight':'bold',fill:'#173a5e'});
+  s.append(svg('rect',{x,y,width:w,height:h,rx:0,fill:'#ffffff',stroke:'#222222','stroke-width':1.6}));
+  const t=svg('text',{x:x+w/2,y:y+h/2-(lines.length-1)*12,'text-anchor':'middle','font-family':'Arial, sans-serif','font-size':18,'font-weight':'normal',fill:'#111111'});
   lines.forEach((line,i)=>{const span=svg('tspan',{x:x+w/2,dy:i===0?0:24});span.textContent=line;t.append(span)});
   s.append(t);
  };
@@ -203,7 +210,7 @@ if(floor===1){
 }
 if(!active)return;const a=locations[from],b=locations[to];const path=currentPath||findPath(from,to);if(path){let pieces=[],part=[];for(const id of path){const n=nodeData[id];if(n.l===floor){part.push([n.x*1000,n.y*700])}else if(part.length){if(part.length>1)pieces.push(part);part=[]}}if(part.length>1)pieces.push(part);for(const P of pieces){s.append(svg('polyline',{points:P.map(p=>p.join(',')).join(' '),fill:'none',stroke:'#1a73e8','stroke-width':5,'stroke-linecap':'round','stroke-linejoin':'round','stroke-dasharray':'3 13'}))}}
  for(const [p,color] of [[a,'#1769ed'],[b,'#ea4335']])if(p.l===floor){s.append(svg('circle',{cx:p.x*1000,cy:p.y*700,r:16,fill:'none',stroke:color,'stroke-width':3}));s.append(svg('circle',{cx:p.x*1000,cy:p.y*700,r:8,fill:color,stroke:'white','stroke-width':2}))}if(b.l===floor){const px=b.x*1000,py=b.y*700;s.append(svg('path',{d:`M ${px} ${py-4} C ${px-27} ${py-33}, ${px+27} ${py-33}, ${px} ${py-4} Z`,fill:'#ea4335',stroke:'white','stroke-width':2}))}updateCompassMarker()}
-function route(){if(typeof voiceCancel==='function')voiceCancel();if(blockedByMission())return;from=$('start').value;to=$('dest').value;active=true;const a=locations[from],b=locations[to];$('mission').hidden=true;$('feedback').textContent='';currentPath=findPath(from,to);changeFloor(a.l);$('routeLabel').textContent=from+' → '+to;refreshWalkTime();const steps=[];if(from===to){$('arrow').textContent='✓';$('direction').textContent='You are at the destination';steps.push('Scan the destination QR code code and complete its mission.')}else if(!currentPath){$('arrow').textContent='!';$('direction').textContent='Route unavailable';steps.push('Ask your teacher to check the walkway connection.')}else{
+function route(){if(typeof voiceCancel==='function')voiceCancel();if(blockedByMission())return;from=$('start').value;to=$('dest').value;active=true;const a=locations[from],b=locations[to];$('mission').hidden=true;$('feedback').textContent='';currentPath=findPath(from,to);changeFloor(a.l);$('routeLabel').textContent=from+' → '+to;refreshWalkTime();const steps=[];if(from===to){$('arrow').textContent='✓';$('direction').textContent='You are at the destination';steps.push('Scan the destination QR code and complete its mission.')}else if(!currentPath){$('arrow').textContent='!';$('direction').textContent='Route unavailable';steps.push('Ask your teacher to check the walkway connection.')}else{
  const transitions=[];for(let i=1;i<currentPath.length;i++)if(nodeData[currentPath[i]].l!==nodeData[currentPath[i-1]].l)transitions.push([currentPath[i-1],currentPath[i]]);
  $('arrow').textContent=transitions.length?(b.l>a.l?'↑':'↓'):'➜';$('direction').textContent=transitions.length?'Follow the blue route to the staircase or lift':'Follow the blue dotted route';
  steps.push('Follow the blue dotted walkway.');
