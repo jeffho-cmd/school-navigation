@@ -380,13 +380,13 @@ $('makeQR').addEventListener('click',()=>{if(!adminUnlocked)return;
  const grid=$('qrgrid');grid.replaceChildren();
  for(const n of names){
    const card=document.createElement('div');card.className='qrlabel';
-   const title=document.createElement('strong');title.textContent=locationDisplayName(n);
+   const title=document.createElement('strong');const option=Array.from($('start').options).find(o=>o.value===n);title.textContent=option ? option.textContent : locationDisplayName(n);
    const code=document.createElement('div');code.className='code';
    const sub=document.createElement('small');sub.textContent='Level '+locations[n].l+' · School Navigation only';
    card.append(title,code,sub);
    new QRCode(code,{text:qrPayload(n),width:110,height:110,correctLevel:QRCode.CorrectLevel.M});grid.append(card);
  }
- $('qrSection').classList.add('visible');$('qrStatus').textContent=names.length+' static QR codes ready. Print from the QR sheet. These are not website links.';
+ $('qrSection').classList.add('visible');$('qrStatus').textContent=names.length+' QR codes ready — titles match dropdowns (24 Nov update).';
  $('qrSection').scrollIntoView({behavior:'smooth'});
 });
 let cameraStream=null,scanFrame=null,scanBusy=false,barcodeDetector=null;
