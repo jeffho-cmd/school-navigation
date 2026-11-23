@@ -128,7 +128,8 @@ function chooseMission(level){
 $('easyMission').addEventListener('click',()=>chooseMission('easy'));
 $('hardMission').addEventListener('click',()=>chooseMission('hard'));
 
-function fillSelect(id){const el=$(id);for(const n of names){const o=document.createElement('option');o.value=n;o.textContent=(n.startsWith('SC ') ? 'Staircase '+n.slice(3).replace(' · L',' — Level ') : n.startsWith('Lift · L') ? 'Lift — Level '+locations[n].l : (/^[EF][1-4]-[1-5]$/.test(n) ? n+' (Classroom)' : n)+' · Level '+locations[n].l);el.add(o)}}['start','dest','checkpoint'].forEach(fillSelect);
+function locationDisplayName(n){return (n.startsWith('SC ') ? 'Staircase '+n.slice(3).replace(' · L',' — Level ') : n.startsWith('Lift · L') ? 'Lift — Level '+locations[n].l : (/^[EF][1-4]-[1-5]$/.test(n) ? n+' (Classroom)' : n)+' · Level '+locations[n].l);}
+function fillSelect(id){const el=$(id);for(const n of names){const o=document.createElement('option');o.value=n;o.textContent=locationDisplayName(n);el.add(o)}}['start','dest','checkpoint'].forEach(fillSelect);
 const incoming=null; // QR codes are decoded inside this app, never from an external link.
 $('start').value=from;$('dest').value=to;$('checkpoint').value=from;
 function progress(){const total=done.length;$('progress').textContent=total+' unique missions completed on this device.'}progress();
@@ -364,7 +365,7 @@ function processSchoolQR(raw){
  // confirmLocation already opens the destination mission. Do not restart it.
  return true;
 }
-const missionPlace=$('missionPlace');names.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=(n.startsWith('SC ') ? 'Staircase '+n.slice(3).replace(' · L',' — Level ') : n.startsWith('Lift · L') ? 'Lift — Level '+locations[n].l : (/^[EF][1-4]-[1-5]$/.test(n) ? n+' (Classroom)' : n)+' · Level '+locations[n].l);missionPlace.append(o)});
+const missionPlace=$('missionPlace');names.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=locationDisplayName(n);missionPlace.append(o)});
 function loadMissionEdit(){$('missionEdit').value=missionOverrides[missionPlace.value]||'';}
 missionPlace.addEventListener('change',loadMissionEdit);loadMissionEdit();
 $('saveMission').addEventListener('click',()=>{if(!adminUnlocked)return;const name=missionPlace.value;const value=$('missionEdit').value.trim();if(value)missionOverrides[name]=value;else delete missionOverrides[name];try{localStorage.setItem('schoolNavMissions',JSON.stringify(missionOverrides))}catch(e){}$('missionSaved').textContent='Saved on this device only. To share missions with student devices, a later published version must include them.';});
@@ -379,7 +380,7 @@ $('makeQR').addEventListener('click',()=>{if(!adminUnlocked)return;
  const grid=$('qrgrid');grid.replaceChildren();
  for(const n of names){
    const card=document.createElement('div');card.className='qrlabel';
-   const title=document.createElement('strong');title.textContent=n;
+   const title=document.createElement('strong');title.textContent=locationDisplayName(n);
    const code=document.createElement('div');code.className='code';
    const sub=document.createElement('small');sub.textContent='Level '+locations[n].l+' · School Navigation only';
    card.append(title,code,sub);
